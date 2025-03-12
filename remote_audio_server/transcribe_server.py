@@ -8,6 +8,7 @@ app = Flask(__name__)
 # Initialize the Whisper model
 model_name = "base"  # You can change this to another model if needed
 device = "cuda" if torch.cuda.is_available() else "cpu"
+print(f"Using device: {device}")
 model = WhisperModel(model_name, device=device)
 
 @app.route('/transcribe', methods=['POST'])
@@ -18,8 +19,8 @@ def transcribe_audio():
     audio_file = io.BytesIO(audio_data)
 
     # Load and preprocess the audio
-    audio = load_audio(audio_file)
-    audio = pad_or_trim(audio, model.dims.n_audio_context * 32).to(model.device)
+    audio = model.load_audio(audio_file)
+    audio = model.pad_or_trim(audio, model.dims.n_audio_context * 32).to(model.device)
 
     # Transcribe the audio
     result = model.transcribe(audio, language="en")  # You can change the language if needed
