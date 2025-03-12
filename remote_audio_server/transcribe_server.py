@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 import io
 import torch
-from faster_whisper.whisper import WhisperModel
+from faster_whisper import WhisperModel
 
 app = Flask(__name__)
 
