@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 import io
 import torch
 from faster_whisper import WhisperModel
-from faster_whisper.audio import load_audio, pad_or_trim
+from faster_whisper.audio import decode_audio, pad_or_trim
 
 app = Flask(__name__)
 
@@ -20,7 +20,7 @@ def transcribe_audio():
     audio_file = io.BytesIO(audio_data)
 
     # Load and preprocess the audio
-    audio = load_audio(audio_file)
+    audio = decode_audio(audio_file)
     audio = pad_or_trim(audio, model.dims.n_audio_context * 32).to(model.device)
 
     # Transcribe the audio
