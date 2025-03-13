@@ -5,6 +5,7 @@ import requests
 import time
 from ollama import Client
 import logging
+import random
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -18,7 +19,7 @@ pyaudio_log.setLevel(logging.ERROR)
 CHUNK = 8192 
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
-RATE = 44100 # Replace with your microphone's sample rate
+RATE = 44100 # Replace with your microphone's sample rate if different
 RECORD_SECONDS = 3
 WHISPER_URL = "http://10.69.10.253:8000/v1/audio/transcriptions"  # Replace with your server IP and port
 OLLAMA_BASE_URL = "http://10.69.10.253:11434"  # Replace with your Ollama server IP and port
@@ -69,8 +70,18 @@ def send_audio_to_server(audio_data):
 
 def enhance_prompt_with_ollama(prompt):
     client = Client(host=OLLAMA_BASE_URL)  # Initialize the Ollama client
+    unique_identifier = random.randint(1, 1000000)  # Generate a random identifier
     # Instructions for Ollama to generate a prompt suitable for ComfyUI
-    instruction = f"Based on the following transcribed text, understand the context of the conversation and generate a detailed and descriptive prompt for image generation using ComfyUI. Give me just the positive and negative prompts separated by a |. Don't add any other text. For example the output should be in the following format ONLY:\n<Positive Prompt>|<Negative Prompt>\n\Trascribed Text:\n\n{prompt}"
+    instruction = (
+        f"Based on the following transcribed text, understand the context of the conversation "
+        f"and generate a detailed and descriptive prompt for image generation using ComfyUI. "
+        f"Give me just the positive and negative prompts separated by a |. Don't add any other text. "
+        f"If there is no transcribed text provided, then pick a random topic of your choice and generate the prompts. Ensure that the topic was not used before."
+        f"For example the output should be in the following format ONLY:\n"
+        f"<Positive Prompt>|<Negative Prompt>\n\n"
+        f"Transcribed Text:\n\n{prompt}\n\n"
+        f"Unique Identifier: {unique_identifier}"
+    )
     try:
         response = client.generate(
             model="gemma3:27b",
@@ -99,6 +110,9 @@ if __name__ == "__main__":
             enhanced_prompt = enhance_prompt_with_ollama(transcribed_text)
             logger.info(f"Enhanced Prompt for ComfyUI: {enhanced_prompt}")
         else:
-            logger.error("No text received from the transcription service.")
+            logger.info("No text received from the transcription service. Generating a random topic.")
+            # Generate a random prompt without transcribed text
+            enhanced_prompt = enhance_prompt_with_ollama("")
+            logger.info(f"Random Topic Enhanced Prompt for ComfyUI: {enhanced_prompt}")
         
         time.sleep(WAIT_TIME)
