@@ -2,7 +2,7 @@
 
 ## Description
 
-AI-Eavesdropper listens to what you are talking and generates related images using a combination of: [Speaches](https://github.com/speaches-ai/speaches), [Ollama](https://ollama.com/), and [ComfyUI](https://github.com/comfyanonymous/ComfyUI).
+AI-Eavesdropper listens to what you are talking and generates related images using a combination of: [Speaches](https://github.com/speaches-ai/speaches), [Ollama](https://ollama.com/), and [Stable Diffusion WebUI](https://github.com/AUTOMATIC1111/stable-diffusion-webui).
 
 ### Features
 
@@ -13,7 +13,7 @@ AI-Eavesdropper listens to what you are talking and generates related images usi
 
 1. **Speech Transcription**: AI-Eavesdropper listens to your speech using Speaches and transcribes it into text.
 2. **Text Processing**: The transcribed text is then processed by Ollama to generate refined prompts that describe the visual content you want.
-3. **Image Generation**: ComfyUI takes these prompts and generates high-quality images based on the descriptions.
+3. **Image Generation**: Stable Diffusion WebUI takes these prompts and generates high-quality images based on the descriptions.
 
 ## Table of Contents
 
@@ -53,10 +53,12 @@ AI-Eavesdropper listens to what you are talking and generates related images usi
     ```
     For more information check out their [docs](https://speaches.ai/)
 
-6. **Run ComfyUI**:
-    ```bash
-    # Follow the instructions in the ComfyUI [documentation]() to start the server.
-    ```
+6. **Set up Stable Diffusion WebUI**:
+    - Follow the instructions in the Stable Diffusion WebUI [documentation](https://github.com/AUTOMATIC1111/stable-diffusion-webui?tab=readme-ov-file#automatic-installation-on-windows).
+    - Before running the `run.bat`, update the following
+      - Add `--api` to the `set COMMANDLINE_ARGS=` in the `webui-user.bat`
+      - Create a virtual environment using venv inside the folder cloned by `update.bat`.
+      - Set `SKIP_VENV` to 0 in `environment.bat`
 
 ## Usage
 
