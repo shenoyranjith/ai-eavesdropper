@@ -70,7 +70,7 @@ def send_audio_to_server(audio_data):
 def enhance_prompt_with_ollama(prompt):
     client = Client(host=OLLAMA_BASE_URL)  # Initialize the Ollama client
     # Instructions for Ollama to generate a prompt suitable for ComfyUI
-    instruction = f"Based on the following transcribed text, extract the context, generate a detailed and descriptive prompt for image generation using ComfyUI. Give me only the prompt and nothßing else. \n\nPrompt: {prompt}"
+    instruction = f"Based on the following transcribed text, understand the context of the conversation and generate a detailed and descriptive prompt for image generation using ComfyUI. Give me just the positive and negative prompts separated by a |. Don't add any other text. For example the output should be in the following format ONLY:\n<Positive Prompt>|<Negative Prompt>\n\Trascribed Text:\n\n{prompt}"
     try:
         response = client.generate(
             model="gemma3:27b",
