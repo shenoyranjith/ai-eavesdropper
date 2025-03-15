@@ -7,6 +7,9 @@ from ollama import Client
 import logging
 import random
 import base64
+from PIL import Image
+import numpy as np
+import cv2
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -128,6 +131,25 @@ def generate_image_with_stable_diffusion(prompt):
         logger.error(f"Error during image generation: {response.text}")
         return None
 
+def display_image_fullscreen(image_data):
+    # Decode the base64 image data to a numpy array
+    img = Image.open(io.BytesIO(base64.b64decode(image_data)))
+    img_np = np.array(img)
+    
+    # Convert RGB to BGR (OpenCV uses BGR format)
+    img_bgr = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
+    
+    # Create a fullscreen window
+    cv2.namedWindow('Generated Image', cv2.WINDOW_NORMAL)
+    cv2.setWindowProperty('Generated Image', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+    
+    # Display the image
+    cv2.imshow('Generated Image', img_bgr)
+    
+    # Wait for a key press to close the window
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
 if __name__ == "__main__":
     while True:
         audio_data = record_audio()
@@ -150,11 +172,14 @@ if __name__ == "__main__":
             # Generate image using the enhanced prompt
             image_data = generate_image_with_stable_diffusion(enhanced_prompt)
             if image_data:
-                # Save or display the generated image
+                # Save the generated image
                 image_path = f"generated_image_{int(time.time())}.png"
                 with open(image_path, "wb") as img_file:
                     img_file.write(base64.b64decode(image_data))
                 logger.info(f"Image saved to {image_path}")
+                
+                # Display the image in fullscreen
+                display_image_fullscreen(image_data)
             else:
                 logger.error("Failed to generate image.")
         
