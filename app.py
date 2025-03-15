@@ -173,10 +173,10 @@ if __name__ == "__main__":
             image_data = generate_image_with_stable_diffusion(enhanced_prompt)
             if image_data:
                 # Save the generated image
-                image_path = f"generated_image_{int(time.time())}.png"
-                with open(image_path, "wb") as img_file:
-                    img_file.write(base64.b64decode(image_data))
-                logger.info(f"Image saved to {image_path}")
+                #image_path = f"generated_image_{int(time.time())}.png"
+                #with open(image_path, "wb") as img_file:
+                #    img_file.write(base64.b64decode(image_data))
+                #logger.info(f"Image saved to {image_path}")
                 
                 # Display the image in fullscreen
                 display_image_fullscreen(image_data)
