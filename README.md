@@ -66,7 +66,7 @@ AI-Eavesdropper listens to what you are talking and generates related images usi
 
 1. Start the AI-Eavesdropper system by running the main script:
     ```bash
-    python3 capture_and_send_audio.py
+    python3 app.py
     ```
 
 2. Speak into your microphone, and AI-Eavesdropper will transcribe your speech, generate a text prompt, and create an image based on the prompt.

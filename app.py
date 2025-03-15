@@ -107,8 +107,8 @@ def generate_image_with_stable_diffusion(prompt):
         "prompt": prompt.strip(),
         "batch_size": 1,
         "steps": 50,  # Increased steps for better quality
-        "width": 1920,
-        "height": 1080,
+        "width": 800,
+        "height": 480,
         "distilled_cfg_scale": 3.5,  # Adjusted distilled CFG scale
         "cfg_scale": 7.5,  # Adjusted CFG scale
         "sampler_name": "Euler",  # Changed sampler
