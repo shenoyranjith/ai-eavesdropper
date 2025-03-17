@@ -71,6 +71,48 @@ AI-Eavesdropper listens to what you are talking and generates related images usi
 
 2. Speak into your microphone, and AI-Eavesdropper will transcribe your speech, generate a text prompt, and create an image based on the prompt.
 
+### Running as a service
+
+1. Create the Service File:
+    ```
+    sudo nano /etc/systemd/system/ai-eavesdropper.service
+    ```
+
+2. Add the Following Content to the Service File:
+    ```
+    [Unit]
+    Description=AI Eavesdropper Script
+    After=network.target
+
+    [Service]
+    User=user
+    Group=user
+    WorkingDirectory=/home/user/ai-eavesdropper
+    Environment="DISPLAY=:0"
+    ExecStart=/home/user/ai-eavesdropper/venv/bin/python3 /home/user/ai-eavesdropper/app.py
+    Restart=always
+    RestartSec=30
+
+    [Install]
+    WantedBy=multi-user.target
+    ```
+
+3. Reload Systemd Daemon:
+    ```
+    sudo systemctl daemon-reload
+    ```
+
+4. Enable and Start the Service:
+    ```
+    sudo systemctl enable ai-eavesdropper.service
+    sudo systemctl start ai-eavesdropper.service
+    ```
+
+5. View Logs to Debug:
+    ```
+    journalctl -u ai-eavesdropper.service -f
+    ```
+
 ## License
 
 Distributed under the Apache 2.0 License. See `LICENSE` for more information.
