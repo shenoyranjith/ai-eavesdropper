@@ -10,6 +10,7 @@ import base64
 from PIL import Image
 import numpy as np
 import cv2
+import threading
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -20,15 +21,15 @@ pyaudio_log = logging.getLogger('pyaudio')
 pyaudio_log.setLevel(logging.ERROR)
 
 # Configuration
-CHUNK = 8192 
+CHUNK = 32768 
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
 RATE = 44100 # Replace with your microphone's sample rate if different
-RECORD_SECONDS = 3
+RECORD_SECONDS = 20
 WHISPER_URL = "http://10.69.10.253:8000/v1/audio/transcriptions"  # Replace with your server IP and port
 OLLAMA_BASE_URL = "http://10.69.10.253:11434"  # Replace with your Ollama server IP and port
 STABLE_DIFFUSION_URL = "http://10.69.10.253:7860/sdapi/v1/txt2img"  # Replace with your Stable-Diffusion-WebUI-Forge server IP and port
-WAIT_TIME = 30  # Time to wait before recording again
+WAIT_TIME = 300  # Time to wait before recording again
 
 def record_audio():
     audio = pyaudio.PyAudio()
@@ -40,7 +41,7 @@ def record_audio():
     logger.info("Recording...")
     frames = []
     for _ in range(0, int(RATE / CHUNK * RECORD_SECONDS)):
-        data = stream.read(CHUNK)
+        data = stream.read(CHUNK, exception_on_overflow=False)
         frames.append(data)
     logger.info("Finished recording.")
     stream.stop_stream()
@@ -131,56 +132,98 @@ def generate_image_with_stable_diffusion(prompt):
         logger.error(f"Error during image generation: {response.text}")
         return None
 
-def display_image_fullscreen(image_data):
-    # Decode the base64 image data to a numpy array
-    img = Image.open(io.BytesIO(base64.b64decode(image_data)))
-    img_np = np.array(img)
-    
-    # Convert RGB to BGR (OpenCV uses BGR format)
-    img_bgr = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
-    
-    # Create a fullscreen window
-    cv2.namedWindow('Generated Image', cv2.WINDOW_NORMAL)
-    cv2.setWindowProperty('Generated Image', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-    
-    # Display the image
-    cv2.imshow('Generated Image', img_bgr)
-    
-    # Wait for a key press to close the window
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+class ImageDisplayThread(threading.Thread):
+    def __init__(self, window_name):
+        super().__init__()
+        self.window_name = window_name
+        self.image_data = None
+        self.update_event = threading.Event()
+        self.stop_event = threading.Event()
+
+    def run(self):
+        logger.info(f"Starting display thread for window {self.window_name}")
+        
+        # Create a fullscreen window
+        cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
+        cv2.setWindowProperty(self.window_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+        
+        while not self.stop_event.is_set():
+            if self.image_data is not None:
+                img = Image.open(io.BytesIO(base64.b64decode(self.image_data)))
+                img_np = np.array(img)
+                
+                # Convert RGB to BGR (OpenCV uses BGR format)
+                img_bgr = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
+                
+                # Update the image in the existing window
+                cv2.imshow(self.window_name, img_bgr)
+                self.image_data = None  # Clear the image data after displaying
+            
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                logger.info(f"Stopping window {self.window_name} due to 'q' press")
+                break
+            
+            # Wait for an update event or a short timeout
+            self.update_event.wait(timeout=0.1)
+        
+        # Destroy the window and close OpenCV
+        logger.info(f"Destroying window {self.window_name}")
+        cv2.destroyWindow(self.window_name)
+
+    def update_image(self, image_data):
+        self.image_data = image_data
+        self.update_event.set()
+
+    def stop(self):
+        self.stop_event.set()
+        self.update_event.set()  # Ensure the thread wakes up and exits
 
 if __name__ == "__main__":
-    while True:
-        audio_data = record_audio()
-        transcription_response = send_audio_to_server(audio_data)
-        
-        if transcription_response and "text" in transcription_response:
-            transcribed_text = transcription_response["text"]
-            logger.info(f"Transcribed Text: {transcribed_text}")
-            
-            # Enhance the prompt using Ollama
-            enhanced_prompt = enhance_prompt_with_ollama(transcribed_text)
-            logger.info(f"Enhanced Prompt for Stable-Diffusion-WebUI-Forge: {enhanced_prompt}")
-        else:
-            logger.info("No text received from the transcription service. Generating a random topic.")
-            # Generate a random prompt without transcribed text
-            enhanced_prompt = enhance_prompt_with_ollama("")
-            logger.info(f"Random Topic Enhanced Prompt for Stable-Diffusion-WebUI-Forge: {enhanced_prompt}")
-        
-        if enhanced_prompt:
-            # Generate image using the enhanced prompt
-            image_data = generate_image_with_stable_diffusion(enhanced_prompt)
-            if image_data:
-                # Save the generated image
-                #image_path = f"generated_image_{int(time.time())}.png"
-                #with open(image_path, "wb") as img_file:
-                #    img_file.write(base64.b64decode(image_data))
-                #logger.info(f"Image saved to {image_path}")
+    last_run_time = time.time()
+    window_name = 'Generated Image'
+    
+    # Start the image display thread
+    display_thread = ImageDisplayThread(window_name)
+    display_thread.start()
+
+    try:
+        while True:
+            current_time = time.time()
+            if current_time - last_run_time >= WAIT_TIME:
+                audio_data = record_audio()
+                transcription_response = send_audio_to_server(audio_data)
                 
-                # Display the image in fullscreen
-                display_image_fullscreen(image_data)
-            else:
-                logger.error("Failed to generate image.")
-        
-        time.sleep(WAIT_TIME)
+                if transcription_response and "text" in transcription_response:
+                    transcribed_text = transcription_response["text"]
+                    logger.info(f"Transcribed Text: {transcribed_text}")
+                    
+                    # Enhance the prompt using Ollama
+                    enhanced_prompt = enhance_prompt_with_ollama(transcribed_text)
+                    logger.info(f"Enhanced Prompt for Stable-Diffusion-WebUI-Forge: {enhanced_prompt}")
+                else:
+                    logger.info("No text received from the transcription service. Generating a random topic.")
+                    # Generate a random prompt without transcribed text
+                    enhanced_prompt = enhance_prompt_with_ollama("")
+                    logger.info(f"Random Topic Enhanced Prompt for Stable-Diffusion-WebUI-Forge: {enhanced_prompt}")
+                
+                if enhanced_prompt:
+                    # Generate image using the enhanced prompt
+                    image_data = generate_image_with_stable_diffusion(enhanced_prompt)
+                    if image_data:
+                        # Update the image in the display thread
+                        logger.info("Updating image in existing window.")
+                        display_thread.update_image(image_data)
+                    else:
+                        logger.error("Failed to generate image.")
+                
+                last_run_time = current_time
+                
+    except KeyboardInterrupt:
+        logger.info("Stopping script due to keyboard interrupt")
+    
+    finally:
+        # Stop the display thread
+        if display_thread.is_alive():
+            logger.info("Stopping display thread.")
+            display_thread.stop()
+            display_thread.join()
