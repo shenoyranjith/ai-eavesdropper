@@ -40,7 +40,7 @@ AI-Eavesdropper listens to what you are talking and generates related images usi
     sudo apt-get install -y python3-venv portaudio19-dev libportaudiocpp0 build-essential swig python3-dev
     python3 -m venv venv
     source venv/bin/activate
-    pip install pyaudio requests ollama pillow opencv-python
+    pip install pyaudio wave requests numpy opencv-python pillow ollama
     ```
 
 4. **Set up Ollama**:
