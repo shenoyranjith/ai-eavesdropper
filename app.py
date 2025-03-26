@@ -253,13 +253,15 @@ class AudioProcessor:
         logger.info("Extracting conversation context")
         client = Client(host=OLLAMA_BASE_URL)
         instruction = (
-            f"Based on transcribed text: {prompt[:50]}..., generate context"
+            f"Based on transcribed text: {prompt}\n\n"
+            f"Extract the context of the conversation\n"
+            f"If you are unable to extract the context, pick a random topic of your choice and give me the context for it.\n"
         )
         
         try:
             response = client.generate(model="gemma3:27b", prompt=instruction)
             context = getattr(response, 'response', 'No context')
-            logger.info(f"Extracted context: {context[:100]}...")
+            logger.info(f"Extracted context: {context}...")
             return context
         except Exception as e:
             logger.exception("Context extraction failed")
@@ -269,7 +271,11 @@ class AudioProcessor:
         logger.info("Generating image prompt")
         client = Client(host=OLLAMA_BASE_URL)
         instruction = (
-            f"Context: {context[:50]}..., generate image prompt"
+            f"Based on the context: {context}\n\n"
+            f"Generate a detailed and descriptive prompt for image generation using Stable-Diffusion-WebUI-Forge.\n"
+            f"The prompt should be formatted as follows:\n"
+            f"<Prompt>\n\n"
+            f"Do not include any other text.\n"
         )
         
         try:
