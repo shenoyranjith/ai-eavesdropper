@@ -236,7 +236,7 @@ class AudioProcessor:
         form_data = {"model": "Systran/faster-whisper-large-v2"}
         
         try:
-            response = requests.post(WHISPER_URL, data=form_data, files=files)
+            response = requests.post(WHISPER_URL, data=form_data, files=files, timeout=900)
             logger.debug("Transcription response received: %s", response.status_code)
             if response.status_code == 200:
                 transcription = response.json().get('text', '')
@@ -251,7 +251,7 @@ class AudioProcessor:
     
     def extract_context(self, prompt):
         logger.info("Extracting conversation context")
-        client = Client(host=OLLAMA_BASE_URL)
+        client = Client(host=OLLAMA_BASE_URL, timeout=900)
         instruction = (
             f"Based on transcribed text: {prompt}\n\n"
             f"Extract the context of the conversation\n"
@@ -261,7 +261,7 @@ class AudioProcessor:
         try:
             response = client.generate(model="gemma3:27b", prompt=instruction)
             context = getattr(response, 'response', 'No context')
-            logger.info(f"Extracted context: {context}...")
+            logger.info(f"Extracted context: {context}")
             return context
         except Exception as e:
             logger.exception("Context extraction failed")
@@ -269,7 +269,7 @@ class AudioProcessor:
     
     def generate_image_prompt(self, context):
         logger.info("Generating image prompt")
-        client = Client(host=OLLAMA_BASE_URL)
+        client = Client(host=OLLAMA_BASE_URL, timeout=900)
         instruction = (
             f"Based on the context: {context}\n\n"
             f"Generate a detailed and descriptive prompt for image generation using Stable-Diffusion-WebUI-Forge.\n"
@@ -281,7 +281,7 @@ class AudioProcessor:
         try:
             response = client.generate(model="gemma3:27b", prompt=instruction)
             prompt = getattr(response, 'response', 'No prompt')
-            logger.info(f"Generated prompt: {prompt[:100]}...")
+            logger.info(f"Generated prompt: {prompt}")
             return prompt
         except Exception as e:
             logger.exception("Prompt generation failed")
